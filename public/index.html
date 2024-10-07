@@ -1,7 +1,27 @@
-<html>
-
-<title>demo app</title>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Form</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        #uploads { margin-top: 20px; }
+        img { max-width: 100px; margin-right: 10px; }
+    </style>
+</head>
 <body>
-    Node.js app
+    <h1>Upload Form</h1>
+    <form action="/upload" method="post" enctype="multipart/form-data">
+        <input type="text" name="description" placeholder="File description" required>
+        <input type="file" name="image" accept="image/*" required>
+        <input type="file" name="file" required>
+        <button type="submit">Upload</button>
+    </form>
+
+  
+    </div>
+
+ 
 </body>
-</html>
+</html> 
