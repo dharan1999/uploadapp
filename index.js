@@ -21,7 +21,7 @@ const upload = multer({ storage }).fields([ // Corrected multer() usage
 ]);
 
 // Initialize ShareServiceClient using the connection string from environment variables
-const connectionString = "DefaultEndpointsProtocol=https;AccountName=asda2;AccountKey=vuEH8Bz7EYPTVVt5VG5opqs4CIi/Kr/kEy0fhJd6aW7jV3xZ/zx0SWfspYb1EBAMQE7zk/cqz87p+AStGAWpJg==;EndpointSuffix=core.windows.net";
+const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING;
 const shareName = "files"; // Replace with your Azure File Share name
 const containerName = "images"; // Replace with your Azure Storage container name
 
