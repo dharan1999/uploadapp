@@ -14,14 +14,26 @@
     <h1>Upload Form</h1>
     <form action="/upload" method="post" enctype="multipart/form-data">
         <input type="text" name="description" placeholder="File description" required>
-        <input type="file" name="image" accept="image/*" required>
+        <input type="file" id="imageInput" name="image" accept="image/*" required>
         <input type="file" name="file" required>
+        <div id="uploads"></div>
         <button type="submit">Upload</button>
     </form>
 
-  
-    </div>
+    <script>
+        const imageInput = document.getElementById('imageInput');
+        const uploadsDiv = document.getElementById('uploads');
 
- 
+        imageInput.addEventListener('change', function(event) {
+            const files = event.target.files;
+            uploadsDiv.innerHTML = ''; // Clear previous previews
+
+            if (files.length > 0) {
+                const imgElement = document.createElement('img');
+                imgElement.src = URL.createObjectURL(files[0]);
+                uploadsDiv.appendChild(imgElement);
+            }
+        });
+    </script>
 </body>
-</html> 
+</html>

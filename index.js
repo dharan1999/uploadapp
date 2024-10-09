@@ -1,58 +1,64 @@
-// const express = require('express')
-// const app = express()
-
-// app.use(express.static('public'))
-// const PORT = 8080
-
-// app.listen(PORT ,() => console.log( `Server is running on http://localhost:${PORT}`));
-
 const express = require('express');
 const multer = require('multer');
-// const { listBlobImages } = require('./services/listBlobImages');
+const { ShareServiceClient } = require('@azure/storage-file-share');
 const { BlobServiceClient } = require('@azure/storage-blob');
-const { ShareServiceClient } = require('@azure/storage-file-share'); // Import ShareServiceClient
-require('dotenv').config();
+const { Readable } = require('stream');
+const path = require('path');
+require('dotenv').config(); // Ensure you have the connection string in your .env file
 
 const app = express();
-const port = 8080;
 
-// Azure Storage Account Configurations
-const AZURE_STORAGE_CONNECTION_STRING = process.env.AZURE_STORAGE_CONNECTION_STRING;
-const blobContainerName = 'images'; // Replace with your container name
-const fileShareName = 'files'; // Replace with your file share name
+// Serve the HTML form when accessing the root URL
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public/index.html'));
+});
 
-const blobServiceClient = BlobServiceClient.fromConnectionString(AZURE_STORAGE_CONNECTION_STRING);
-const shareServiceClient = ShareServiceClient.fromConnectionString(AZURE_STORAGE_CONNECTION_STRING); // Use ShareServiceClient for File Shares
+// Set up Multer to handle multipart/form-data without storing the files on disk
+const storage = multer.memoryStorage(); // Store file data in memory
+const upload = multer({ storage }).fields([ // Corrected multer() usage
+    { name: 'image', maxCount: 1 },
+    { name: 'file', maxCount: 1 }
+]);
 
-const upload = multer({ dest: 'uploads/' }); // Local folder for file uploads
+// Initialize ShareServiceClient using the connection string from environment variables
+const connectionString = process.env.AZURE_STORAGE_CONNECTION_STRING; // Ensure this is correctly set in your .env file
+const shareName = "files"; // Replace with your Azure File Share name
+const containerName = "images"; // Replace with your Azure Storage container name
 
-app.use(express.static('public'));
+const serviceClient = ShareServiceClient.fromConnectionString(connectionString);
+const shareClient = serviceClient.getShareClient(shareName);
+const directoryClient = shareClient.getDirectoryClient(""); // Use your container name
 
-// Endpoint to handle file uploads
-app.post('/upload', upload.fields([{ name: 'image' }, { name: 'file' }]), async (req, res) => {
+const blobServiceClient = BlobServiceClient.fromConnectionString(connectionString);
+const containerClient = blobServiceClient.getContainerClient(containerName);
+
+app.post('/upload', upload, async (req, res) => {
     try {
+        // Get file buffers from the request
+
+
+        const imageBuffer = req.files['image'][0].buffer; // Buffer for image
+        const fileBuffer = req.files['file'][0].buffer; // Buffer for file
+        const imageName = req.files['image'][0].originalname; // Image file name
+        const fileName = req.files['file'][0].originalname; // File name
+
         // Upload image to Blob Storage
-        const blobContainerClient = blobServiceClient.getContainerClient(blobContainerName);
-        const imageBlobClient = blobContainerClient.getBlockBlobClient(req.files['image'][0].originalname);
-        await imageBlobClient.uploadFile(req.files['image'][0].path);
+        const blockBlobClientImage = containerClient.getBlockBlobClient(imageName);
+        await blockBlobClientImage.uploadData(imageBuffer);
 
-        // Upload file to File Share
-        const fileShareClient = shareServiceClient.getShareClient(fileShareName);
-        const directoryClient = fileShareClient.getDirectoryClient('');
-        const fileClient = directoryClient.getFileClient(req.files['file'][0].originalname);
-        await fileClient.uploadFile(req.files['file'][0].path);
+        // Upload regular file
+        const fileClient = directoryClient.getFileClient(fileName);
+        const fileStream = Readable.from(fileBuffer);
+        await fileClient.create(fileBuffer.length);
+        await fileClient.uploadStream(fileStream, fileBuffer.length, 4 * 1024 * 1024);
 
-        res.status(200).send('Files uploaded successfully!');
+        res.send('Files uploaded successfully to Azure Storage');
     } catch (error) {
-        console.error(error);
-        res.status(500).send('Error uploading files');
+        console.error('Error uploading files:', error);
+        res.status(500).send('File upload failed');
     }
 });
 
-
-
-
-// Start the server
-app.listen(port, () => {
-    console.log(`Server is running on http://localhost:${port}`);
+app.listen(8080, () => {
+    console.log('Server is running on port 8080');
 });
