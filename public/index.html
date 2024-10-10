@@ -3,37 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Upload Form</title>
-    <style>
-        body { font-family: Arial, sans-serif; }
-        #uploads { margin-top: 20px; }
-        img { max-width: 100px; margin-right: 10px; }
-    </style>
+    <title>Azure Storage Gallery</title>
+    <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
-    <h1>Upload Form</h1>
-    <form action="/upload" method="post" enctype="multipart/form-data">
-        <input type="text" name="description" placeholder="File description" required>
-        <input type="file" id="imageInput" name="image" accept="image/*" required>
-        <input type="file" name="file" required>
-        <div id="uploads"></div>
-        <button type="submit">Upload</button>
-    </form>
+    <nav class="navbar">
+        <a href="/">Home</a>
+        <a href="/image-gallery">Image Gallery</a>
+        <a href="/file-share">File Share</a>
+    </nav>
+
+    <div class="container" id="home">
+        <h1>Upload to Azure Storage</h1>
+        <form action="/upload" method="POST" enctype="multipart/form-data">
+            <label for="image">Select an image:</label>
+            <input type="file" name="image" accept="image/*" required>
+            <label for="file">Select a file:</label>
+            <input type="file" name="file" required>
+            <button type="submit">Upload</button>
+        </form>
+    </div>
+
+    <div class="container" id="image-gallery-section" style="display:none;">
+        <h2>Image Gallery</h2>
+        <div id="image-gallery" class="gallery"></div>
+    </div>
+
+    <div class="container" id="file-gallery-section" style="display:none;">
+        <h2>File Share</h2>
+        <ul id="file-gallery"></ul>
+    </div>
 
     <script>
-        const imageInput = document.getElementById('imageInput');
-        const uploadsDiv = document.getElementById('uploads');
+        const page = window.location.pathname;
 
-        imageInput.addEventListener('change', function(event) {
-            const files = event.target.files;
-            uploadsDiv.innerHTML = ''; // Clear previous previews
+        // Handle showing/hiding sections based on navigation
+        const homeSection = document.getElementById('home');
+        const imageGallerySection = document.getElementById('image-gallery-section');
+        const fileGallerySection = document.getElementById('file-gallery-section');
 
-            if (files.length > 0) {
-                const imgElement = document.createElement('img');
-                imgElement.src = URL.createObjectURL(files[0]);
-                uploadsDiv.appendChild(imgElement);
-            }
-        });
+        if (page === '/image-gallery') {
+            homeSection.style.display = 'none';
+            imageGallerySection.style.display = 'block';
+            fetchImages();
+        } else if (page === '/file-share') {
+            homeSection.style.display = 'none';
+            fileGallerySection.style.display = 'block';
+            fetchFiles();
+        }
+
+        // Fetch images and display in the image gallery
+        function fetchImages() {
+            fetch('/api/images')
+                .then(response => response.json())
+                .then(images => {
+                    const imageGallery = document.getElementById('image-gallery');
+                    images.forEach(imageUrl => {
+                        const img = document.createElement('img');
+                        img.src = imageUrl;
+                        img.alt = 'Uploaded Image';
+                        imageGallery.appendChild(img);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching images:', error);
+                });
+        }
+
+        // Fetch files and display in the file gallery
+        function fetchFiles() {
+            fetch('/api/files')
+                .then(response => response.json())
+                .then(files => {
+                    const fileGallery = document.getElementById('file-gallery');
+                    files.forEach(fileUrl => {
+                        const li = document.createElement('li');
+                        const a = document.createElement('a');
+                        a.href = fileUrl;
+                        a.target = '_blank';
+                        a.textContent = fileUrl.split('/').pop(); // Display file name
+                        li.appendChild(a);
+                        fileGallery.appendChild(li);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error fetching files:', error);
+                });
+        }
     </script>
 </body>
 </html>

@@ -8,8 +8,19 @@ require('dotenv').config(); // Ensure you have the connection string in your .en
 
 const app = express();
 
-// Serve the HTML form when accessing the root URL
+// Serve static files (like CSS) from the "public" directory
+app.use(express.static('public'));
+
+// Serve the same HTML file for all routes
 app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public/index.html'));
+});
+
+app.get('/image-gallery', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public/index.html'));
+});
+
+app.get('/file-share', (req, res) => {
     res.sendFile(path.join(__dirname, 'public/index.html'));
 });
 
@@ -56,6 +67,39 @@ app.post('/upload', upload, async (req, res) => {
     } catch (error) {
         console.error('Error uploading files:', error);
         res.status(500).send('File upload failed');
+    }
+});
+
+
+// API route to fetch all images
+app.get('/api/images', async (req, res) => {
+    try {
+        const images = [];
+        for await (const blob of containerClient.listBlobsFlat()) {
+            const blobUrl = `https://${process.env.AZURE_STORAGE_ACCOUNT_NAME}.blob.core.windows.net/${containerName}/${blob.name}`;
+            images.push(blobUrl);
+        }
+        res.json(images);
+    } catch (error) {
+        console.error('Error fetching images:', error);
+        res.status(500).json({ error: 'Error fetching images' });
+    }
+});
+
+// API route to fetch all files
+app.get('/api/files', async (req, res) => {
+    try {
+        const files = [];
+        for await (const fileItem of directoryClient.listFilesAndDirectories()) {
+            if (fileItem.kind === 'file') {
+                const fileUrl = `https://${process.env.AZURE_STORAGE_ACCOUNT_NAME}.file.core.windows.net/${shareName}/${fileItem.name}`;
+                files.push(fileUrl);
+            }
+        }
+        res.json(files);
+    } catch (error) {
+        console.error('Error fetching files:', error);
+        res.status(500).json({ error: 'Error fetching files' });
     }
 });
 
